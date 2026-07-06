@@ -102,6 +102,37 @@ plt.savefig(f"{OUT_DIR}/cluster_profile_heatmap.png", dpi=150)
 plt.close()
 
 # ---------------------------------------------------------------------------
+# 4b. Visual shape check -- is K-Means actually appropriate here?
+# K-Means assumes roughly round, similarly-sized clusters. If clusters turn
+# out crescent-shaped, elongated, or wildly uneven in density, K-Means will
+# split them wrong even if silhouette looks okay. A 2D PCA projection gives
+# a quick visual gut-check against that pitfall.
+# ---------------------------------------------------------------------------
+from sklearn.decomposition import PCA
+
+pca = PCA(n_components=2, random_state=RANDOM_SEED)
+X_pca = pca.fit_transform(X_train_scaled)
+explained = pca.explained_variance_ratio_.sum()
+
+plt.figure(figsize=(7, 6))
+scatter = plt.scatter(X_pca[:, 0], X_pca[:, 1], c=train_clusters, cmap="viridis", s=40, alpha=0.8, edgecolor="k", linewidth=0.3)
+centers_pca = pca.transform(final_km.cluster_centers_)
+plt.scatter(centers_pca[:, 0], centers_pca[:, 1], c="red", marker="X", s=200, label="Centroids", edgecolor="black")
+plt.title(f"Cluster Shapes in 2D PCA Space ({explained:.0%} variance explained)")
+plt.xlabel("PC1")
+plt.ylabel("PC2")
+plt.legend()
+plt.colorbar(scatter, label="Cluster")
+plt.tight_layout()
+plt.savefig(f"{OUT_DIR}/cluster_shape_pca.png", dpi=150)
+plt.close()
+
+print(f"\nShape check: PCA 2D projection explains {explained:.1%} of variance.")
+print("Inspect outputs/cluster_shape_pca.png -- clusters should look like roughly")
+print("round, separated blobs around their centroids. Crescent/elongated/nested")
+print("shapes would mean K-Means is a poor fit for this data's true structure.")
+
+# ---------------------------------------------------------------------------
 # 5. Name clusters in business terms
 # ---------------------------------------------------------------------------
 # Interpreted from outputs/cluster_profile_heatmap.png:
